@@ -129,7 +129,7 @@ app.get("/api/test", (req, res) => {
   res.json({ msg: "API call successful!", time: new Date().toISOString() });
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () =>
-  console.log(`API server is running → http://localhost:${PORT}`)
-);
+const port = process.env.PORT || 4000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server listening on ${port}`);
+});
