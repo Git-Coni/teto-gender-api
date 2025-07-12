@@ -6,14 +6,26 @@ const dotenv = require("dotenv");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
-const FRONTEND = "https://git-coni.github.io";
-app.use(cors({ origin: FRONTEND }));
-
-// 변경사항: JSON 요청 본문(body)을 파싱하기 위한 미들웨어 추가
-app.use(express.json());
-
 // .env 파일의 환경 변수를 로드합니다.
 dotenv.config();
+
+// 허용할 도메인 목록
+const allowedOrigins = ["https://git-coni.github.io", "http://localhost:3000"];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+};
+
+app.use(cors(corsOptions));
+
+// JSON 요청 본문(body)을 파싱하기 위한 미들웨어 추가
+app.use(express.json());
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("Environment variable GEMINI_API_KEY is not set.");
@@ -85,33 +97,32 @@ app.post("/api/evaluate", async (req, res) => {
       .join("\n");
 
     const prompt = `
-      Based on the following gender and answers, provide a personality evaluation.
-      Gender: ${gender}
-      Answers:
-      ${answersString}
-
-      Evaluate the user and provide a personality type from these four options: 'egen-boy', 'egen-girl', 'teto-boy', 'teto-girl'.
-      
-      The personality types follow a "Love Food Chain" circulation structure:
-      Egen-girl → Egen-boy → Teto-girl → Teto-boy → Egen-girl
-      
-      Provide a specific explanation for how the determined type fits into this Love Food Chain, based on the following example:
-      Example for teto-boy: "테토남은 자신에게 없는 부드러운 여성성과 섬세한 감수성을 지닌 에겐녀에게 호감을 느낀다. 테토녀에게도 외형적 매력이나 활기 측면에서 끌릴 수 있지만, 두 사람 모두 양기 성향이 강해 갈등이 잦거나 주도권을 두고 충돌하는 경우가 있다."
-
-      Please respond in a JSON format with 'type', 'explanation', 'advice', 'next_type', and 'love_chain_info'.
-      'next_type' should be the next type in the Love Food Chain based on the determined 'type'.
-      The response must be in the requested language.
-      Language: ${lang}
-
-      Example:
-      {
-          "type": "egen-boy",
-          "explanation": "...",
-          "advice": "...",
-          "next_type": "teto-girl",
-          "love_chain_info": "..."
-      }
-    `;
+        Based on the following gender and answers, please evaluate the user's personality.
+        
+        Gender: ${gender}
+        Answers:
+        ${answersString}
+        
+        Select one of these four personality types: “egen-boy”, “egen-girl”, “teto-boy”, or “teto-girl”.
+        
+        You must respond in valid JSON with the exact keys: "type", "explanation", "advice", "next_type", and "love_chain_info".  
+        - "type": the chosen type.  
+        - "explanation": describe how their answers reflect that personality type.  
+        - "advice": practical guidance tailored to that type.  
+        - "next_type": the next type in the Love Food Chain.  
+        - "love_chain_info": explain in detail why this type is drawn to the next type—*from an egen/teto perspective*—following the Love Food Chain dynamics. For example, if "teto-boy" is selected, explain how teto-boys are naturally attracted to egen-girls due to their gentle femininity and sensitivity, and what that implies emotionally and behaviorally.
+        
+        Language: ${lang}
+        
+        Example:
+        {
+          "type": "teto-boy",
+          "explanation": "…",
+          "advice": "…",
+          "next_type": "egen-girl",
+          "love_chain_info": "Teto-boys are often attracted to egen-girls because they offer a gentle emotional balance … (and more detailed reasoning)."
+        }
+      `;
 
     // 변경사항: AI에게 보내는 프롬프트를 로그로 남깁니다.
     console.log("Sending prompt to AI:", prompt);
@@ -137,7 +148,7 @@ app.post("/api/evaluate", async (req, res) => {
   }
 });
 
-// 변경사항: GET /api/translations 엔드포인트 추가
+// GET /api/translations 엔드포인트 추가
 app.get("/api/translations", async (req, res) => {
   try {
     const langCode = req.query.lang || "ko";
