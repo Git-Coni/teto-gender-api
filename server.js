@@ -105,36 +105,40 @@ app.post("/api/evaluate", async (req, res) => {
         Answers:
         ${answersString}
         
-        Select one of these four personality types: “egen-boy”, “egen-girl”, “teto-boy”, or “teto-girl”.
+        Choose exactly one personality type: “egen-boy”, “egen-girl”, “teto-boy”, or “teto-girl”.
         
-        You must respond in valid JSON with the exact keys: "type", "explanation", "advice", "next_type", and "love_chain_info".  
-        - "type": the chosen type.  
-        - "explanation": describe how their answers reflect that personality type.  
-        - "advice": practical guidance tailored to that type.  
-        - "next_type": the next type in the Love Food Chain.  
-        - "love_chain_info": explain in detail why this type is drawn to the next type—*from an egen/teto perspective*—following the Love Food Chain dynamics. For example, if "teto-boy" is selected, explain how teto-boys are naturally attracted to egen-girls due to their gentle femininity and sensitivity, and what that implies emotionally and behaviorally.
+        Respond in valid JSON with these keys:
+        - "type": the chosen type.
+        - "explanation": describe how their answers reflect this type.
+        - "advice": give practical guidance for this type.
+        - "next_type": the next type in the Love Food Chain.
+        - "love_chain_info": explain why this type is attracted to next_type — from an egen/teto perspective, with emotional and behavioral reasoning.
+        
+        IMPORTANT: 
+        1. Use **'teto-boy'**, **'teto-girl'**, **'egen-boy'**, **'egen-girl'** consistently—avoiding terms like “teto-girl” becoming “테토소녀” in Korean.
+        2. Make each field output contain line breaks and separate paragraphs for readability.
         
         Language: ${lang}
         
-        Example:
+        Example output:
         {
           "type": "teto-boy",
-          "explanation": "…",
-          "advice": "…",
+          "explanation": "Paragraph 1 about personality.\n\nParagraph 2 about behavior.",
+          "advice": "Paragraph about advice.\n\nAnother paragraph.",
           "next_type": "egen-girl",
-          "love_chain_info": "Teto-boys are often attracted to egen-girls because they offer a gentle emotional balance … (and more detailed reasoning)."
+          "love_chain_info": "Teto-boys are naturally attracted to egen-girls because they provide emotional balance...\n\nExplain behavioral pattern next."
         }
       `;
 
     // 변경사항: AI에게 보내는 프롬프트를 로그로 남깁니다.
-    logger.info("Sending prompt to AI:", prompt);
+    logger.info("Sending prompt to AI: ${prompt}");
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
 
     // 변경사항: AI의 응답 텍스트를 로그로 남깁니다.
-    logger.info("Received raw AI response:", text);
+    logger.info("Received raw AI response: ${text}");
 
     // 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
     if (text.startsWith("```json")) {
@@ -177,7 +181,7 @@ app.get("/api/translations", async (req, res) => {
 
 app.get("/api/test", (req, res) => {
   res.json({ msg: "API call successful!", time: new Date().toISOString() });
-  logger.info({ msg: "API call successful!", time: new Date().toISOString() });
+  logger.info("API call successful!");
 });
 
 const PORT = process.env.PORT || 4000;
