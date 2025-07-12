@@ -177,6 +177,7 @@ app.get("/api/translations", async (req, res) => {
 
 app.get("/api/test", (req, res) => {
   res.json({ msg: "API call successful!", time: new Date().toISOString() });
+  logger.info({ msg: "API call successful!", time: new Date().toISOString() });
 });
 
 const PORT = process.env.PORT || 4000;
