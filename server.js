@@ -7,7 +7,8 @@ const dotenv = require("dotenv");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
-const FRONTEND = "[https://git-coni.github.io](https://git-coni.github.io)";
+// 변경사항: FRONTEND 변수의 값을 올바른 URL 문자열로 수정
+const FRONTEND = "https://git-coni.github.io";
 app.use(cors({ origin: FRONTEND }));
 
 // 변경사항: JSON 요청 본문(body)을 파싱하기 위한 미들웨어 추가
@@ -47,7 +48,7 @@ app.get("/", (req, res) => {
 // GET /api/questions 엔드포인트: DB에서 다국어 질문을 가져와 반환
 app.get("/api/questions", async (req, res) => {
   try {
-    const langCode = req.query.lang || "en";
+    const langCode = req.query.lang || "ko";
 
     const connection = await mysql.createConnection(dbConfig);
 
@@ -125,9 +126,10 @@ app.post("/api/evaluate", async (req, res) => {
   }
 });
 
+// 변경사항: GET /api/translations 엔드포인트 추가
 app.get("/api/translations", async (req, res) => {
   try {
-    const langCode = req.query.lang || "en";
+    const langCode = req.query.lang || "ko";
 
     const connection = await mysql.createConnection(dbConfig);
 
@@ -154,7 +156,7 @@ app.get("/api/test", (req, res) => {
   res.json({ msg: "API call successful!", time: new Date().toISOString() });
 });
 
-const port = process.env.PORT || 4000;
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server listening on ${port}`);
-});
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () =>
+  console.log(`API server is running → http://localhost:${PORT}`)
+);
