@@ -127,14 +127,14 @@ app.post("/api/evaluate", async (req, res) => {
       `;
 
     // 변경사항: AI에게 보내는 프롬프트를 로그로 남깁니다.
-    logger.log("Sending prompt to AI:", prompt);
+    logger.info("Sending prompt to AI:", prompt);
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
 
     // 변경사항: AI의 응답 텍스트를 로그로 남깁니다.
-    logger.log("Received raw AI response:", text);
+    logger.info("Received raw AI response:", text);
 
     // 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
     if (text.startsWith("```json")) {
@@ -181,5 +181,5 @@ app.get("/api/test", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () =>
-  logger.log(`API server is running → http://localhost:${PORT}`)
+  logger.info(`API server is running → http://localhost:${PORT}`)
 );
