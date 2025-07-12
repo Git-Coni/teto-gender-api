@@ -1,8 +1,10 @@
 // dotenv 패키지를 추가하여 환경 변수를 로드합니다.
 const express = require("express");
+
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
+const logger = require("./logger");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
@@ -28,7 +30,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 if (!process.env.GEMINI_API_KEY) {
-  console.error("Environment variable GEMINI_API_KEY is not set.");
+  logger.error("Environment variable GEMINI_API_KEY is not set.");
   process.exit(1);
 }
 
@@ -82,7 +84,7 @@ app.get("/api/questions", async (req, res) => {
 
     res.json(rows);
   } catch (error) {
-    console.error("Database query error:", error);
+    logger.error("Database query error:", error);
     res.status(500).json({ error: "Failed to retrieve question data." });
   }
 });
@@ -125,14 +127,14 @@ app.post("/api/evaluate", async (req, res) => {
       `;
 
     // 변경사항: AI에게 보내는 프롬프트를 로그로 남깁니다.
-    console.log("Sending prompt to AI:", prompt);
+    logger.log("Sending prompt to AI:", prompt);
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
 
     // 변경사항: AI의 응답 텍스트를 로그로 남깁니다.
-    console.log("Received raw AI response:", text);
+    logger.log("Received raw AI response:", text);
 
     // 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
     if (text.startsWith("```json")) {
@@ -143,7 +145,7 @@ app.post("/api/evaluate", async (req, res) => {
 
     res.json(parsedResult);
   } catch (error) {
-    console.error("API call or JSON parsing error:", error);
+    logger.error("API call or JSON parsing error:", error);
     res.status(500).json({ error: "Failed to process evaluation." });
   }
 });
@@ -168,7 +170,7 @@ app.get("/api/translations", async (req, res) => {
 
     res.json(translations);
   } catch (error) {
-    console.error("Database query error:", error);
+    logger.error("Database query error:", error);
     res.status(500).json({ error: "Failed to retrieve translations." });
   }
 });
@@ -179,5 +181,5 @@ app.get("/api/test", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () =>
-  console.log(`API server is running → http://localhost:${PORT}`)
+  logger.log(`API server is running → http://localhost:${PORT}`)
 );
