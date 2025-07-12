@@ -7,7 +7,6 @@ const dotenv = require("dotenv");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
-// 변경사항: FRONTEND 변수의 값을 올바른 URL 문자열로 수정
 const FRONTEND = "https://git-coni.github.io";
 app.use(cors({ origin: FRONTEND }));
 
@@ -85,32 +84,52 @@ app.get("/api/questions", async (req, res) => {
 // 변경사항: POST /api/evaluate 엔드포인트를 Gemini API를 사용하도록 수정
 app.post("/api/evaluate", async (req, res) => {
   try {
-    const { gender, answers } = req.body;
+    const { gender, answers, lang } = req.body;
 
     // 답변 객체를 문자열로 변환하여 프롬프트에 포함
     const answersString = Object.entries(answers)
       .map(([q, a]) => `${q}: ${a}`)
       .join("\n");
 
-    // Gemini 프롬프트 생성
+    // 변경사항: Gemini 프롬프트에 언어 정보, 타입 목록, 연애 먹이사슬 정보를 추가합니다.
     const prompt = `
       Based on the following gender and answers, provide a personality evaluation.
       Gender: ${gender}
       Answers:
       ${answersString}
 
-      Please respond in a JSON format with 'type', 'explanation', and 'advice'.
+      Evaluate the user and provide a personality type from these four options: 'egen-boy', 'egen-girl', 'teto-boy', 'teto-girl'.
+      
+      The personality types follow a "Love Food Chain" circulation structure:
+      Egen-girl → Egen-boy → Teto-girl → Teto-boy → Egen-girl
+      
+      Provide a specific explanation for how the determined type fits into this Love Food Chain, based on the following example:
+      Example for teto-boy: "테토남은 자신에게 없는 부드러운 여성성과 섬세한 감수성을 지닌 에겐녀에게 호감을 느낀다. 테토녀에게도 외형적 매력이나 활기 측면에서 끌릴 수 있지만, 두 사람 모두 양기 성향이 강해 갈등이 잦거나 주도권을 두고 충돌하는 경우가 있다."
+
+      Please respond in a JSON format with 'type', 'explanation', 'advice', 'next_type', and 'love_chain_info'.
+      'next_type' should be the next type in the Love Food Chain based on the determined 'type'.
+      The response must be in the requested language.
+      Language: ${lang}
+
       Example:
       {
-          "type": "Egen-nam",
+          "type": "egen-boy",
           "explanation": "...",
-          "advice": "..."
+          "advice": "...",
+          "next_type": "teto-girl",
+          "love_chain_info": "..."
       }
     `;
+
+    // 변경사항: AI에게 보내는 프롬프트를 로그로 남깁니다.
+    console.log("Sending prompt to AI:", prompt);
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
+
+    // 변경사항: AI의 응답 텍스트를 로그로 남깁니다.
+    console.log("Received raw AI response:", text);
 
     // 변경사항: 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
     if (text.startsWith("```json")) {
@@ -123,32 +142,6 @@ app.post("/api/evaluate", async (req, res) => {
   } catch (error) {
     console.error("API call or JSON parsing error:", error);
     res.status(500).json({ error: "Failed to process evaluation." });
-  }
-});
-
-// 변경사항: GET /api/translations 엔드포인트 추가
-app.get("/api/translations", async (req, res) => {
-  try {
-    const langCode = req.query.lang || "ko";
-
-    const connection = await mysql.createConnection(dbConfig);
-
-    const [rows] = await connection.execute(
-      `SELECT key_name, translated_text FROM i18n WHERE lang_code = ?`,
-      [langCode]
-    );
-    connection.end();
-
-    // 배열을 객체 형태로 변환
-    const translations = rows.reduce((acc, row) => {
-      acc[row.key_name] = row.translated_text;
-      return acc;
-    }, {});
-
-    res.json(translations);
-  } catch (error) {
-    console.error("Database query error:", error);
-    res.status(500).json({ error: "Failed to retrieve translations." });
   }
 });
 
