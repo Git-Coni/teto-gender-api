@@ -3,7 +3,6 @@ const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
-// 변경사항: OpenAI API 패키지 대신 Google Generative AI 패키지를 사용합니다.
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
@@ -14,18 +13,14 @@ app.use(cors({ origin: FRONTEND }));
 app.use(express.json());
 
 // .env 파일의 환경 변수를 로드합니다.
-// 변경사항: 환경 변수를 사용하도록 수정
 dotenv.config();
 
-// 변경사항: OpenAI API 키 대신 Gemini API 키 환경 변수 확인
 if (!process.env.GEMINI_API_KEY) {
   console.error("Environment variable GEMINI_API_KEY is not set.");
   process.exit(1);
 }
 
-// 변경사항: Gemini API 클라이언트를 초기화합니다.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// 변경사항: 모델명을 'gemini-2.5-flash'로 변경
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const dbConfig = {
@@ -36,7 +31,6 @@ const dbConfig = {
 };
 
 // GET / 엔드포인트: API 서버의 상태를 반환
-// 변경사항: 루트 경로에 대한 응답을 추가함
 app.get("/", (req, res) => {
   res.json({
     status: "API server is running.",
@@ -81,17 +75,15 @@ app.get("/api/questions", async (req, res) => {
   }
 });
 
-// 변경사항: POST /api/evaluate 엔드포인트를 Gemini API를 사용하도록 수정
+// POST /api/evaluate 엔드포인트를 Gemini API를 사용하도록 수정
 app.post("/api/evaluate", async (req, res) => {
   try {
     const { gender, answers, lang } = req.body;
 
-    // 답변 객체를 문자열로 변환하여 프롬프트에 포함
     const answersString = Object.entries(answers)
       .map(([q, a]) => `${q}: ${a}`)
       .join("\n");
 
-    // 변경사항: Gemini 프롬프트에 언어 정보, 타입 목록, 연애 먹이사슬 정보를 추가합니다.
     const prompt = `
       Based on the following gender and answers, provide a personality evaluation.
       Gender: ${gender}
@@ -131,7 +123,7 @@ app.post("/api/evaluate", async (req, res) => {
     // 변경사항: AI의 응답 텍스트를 로그로 남깁니다.
     console.log("Received raw AI response:", text);
 
-    // 변경사항: 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
+    // 응답 텍스트에서 불필요한 마크다운 코드 블록 제거
     if (text.startsWith("```json")) {
       text = text.replace("```json", "").replace("```", "").trim();
     }
@@ -142,6 +134,31 @@ app.post("/api/evaluate", async (req, res) => {
   } catch (error) {
     console.error("API call or JSON parsing error:", error);
     res.status(500).json({ error: "Failed to process evaluation." });
+  }
+});
+
+// 변경사항: GET /api/translations 엔드포인트 추가
+app.get("/api/translations", async (req, res) => {
+  try {
+    const langCode = req.query.lang || "ko";
+
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [rows] = await connection.execute(
+      `SELECT key_name, translated_text FROM i18n WHERE lang_code = ?`,
+      [langCode]
+    );
+    connection.end();
+
+    const translations = rows.reduce((acc, row) => {
+      acc[row.key_name] = row.translated_text;
+      return acc;
+    }, {});
+
+    res.json(translations);
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({ error: "Failed to retrieve translations." });
   }
 });
 
