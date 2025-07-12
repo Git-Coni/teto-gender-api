@@ -47,7 +47,7 @@ app.get("/", (req, res) => {
 // GET /api/questions 엔드포인트: DB에서 다국어 질문을 가져와 반환
 app.get("/api/questions", async (req, res) => {
   try {
-    const langCode = req.query.lang || "ko";
+    const langCode = req.query.lang || "en";
 
     const connection = await mysql.createConnection(dbConfig);
 
@@ -122,6 +122,31 @@ app.post("/api/evaluate", async (req, res) => {
   } catch (error) {
     console.error("API call or JSON parsing error:", error);
     res.status(500).json({ error: "Failed to process evaluation." });
+  }
+});
+
+app.get("/api/translations", async (req, res) => {
+  try {
+    const langCode = req.query.lang || "en";
+
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [rows] = await connection.execute(
+      `SELECT key_name, translated_text FROM i18n WHERE lang_code = ?`,
+      [langCode]
+    );
+    connection.end();
+
+    // 배열을 객체 형태로 변환
+    const translations = rows.reduce((acc, row) => {
+      acc[row.key_name] = row.translated_text;
+      return acc;
+    }, {});
+
+    res.json(translations);
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({ error: "Failed to retrieve translations." });
   }
 });
 
