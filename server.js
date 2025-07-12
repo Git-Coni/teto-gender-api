@@ -12,7 +12,11 @@ const app = express();
 dotenv.config();
 
 // 허용할 도메인 목록
-const allowedOrigins = ["https://git-coni.github.io", "http://localhost:3000"];
+const allowedOrigins = [
+  "https://git-coni.github.io",
+  "http://localhost:3000",
+  "https://test.coniteck.cc",
+];
 
 const corsOptions = {
   origin: function (origin, callback) {
